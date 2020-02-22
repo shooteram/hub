@@ -1,0 +1,23 @@
+FROM alpine:3.11
+
+RUN apk add --no-cache \
+    ca-certificates bash git openssh go \
+    && git --version && bash --version | head -n 1 && ssh -V && go version
+
+RUN [ ! -e /etc/nsswitch.conf ] && echo 'hosts: files dns' > /etc/nsswitch.conf
+
+RUN eval $(ssh-agent -s)
+
+RUN mkdir -p ~/.ssh
+RUN echo $(ssh-keyscan github.com) >> ~/.ssh/known_hosts
+
+ARG USERNAME
+ARG GIT_PERSONNAL_ACCESS_TOKEN
+
+RUN git clone https://$USERNAME:$GIT_PERSONNAL_ACCESS_TOKEN@github.com/$USERNAME/deploy /deploy
+
+WORKDIR /deploy
+
+RUN go build -o deploy main.go \
+    && chmod +x deploy \
+    && ./deploy
